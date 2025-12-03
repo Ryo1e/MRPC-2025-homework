@@ -190,7 +190,12 @@ double Astarpath::getHeu(MappingNodePtr node1, MappingNodePtr node2) {
   // 使用数字距离和一种类型的tie_breaker
   double heu;
   double tie_breaker;
-  
+
+  // 使用欧式距离作为启发式函数 h(n)
+  heu = (node1->coord - node2->coord).norm();
+  tie_breaker = 1.0 + 1e-3;
+
+  heu *= tie_breaker;
   return heu;
 }
 
@@ -247,11 +252,23 @@ bool Astarpath::AstarSearch(Vector3d start_pt, Vector3d end_pt) {
 
   while (!Openset.empty()) {
     //1.弹出g+h最小的节点
-    //????
+    currentPtr = Openset.begin()->second;
+    Openset.erase(Openset.begin());
+    if (currentPtr->id == -1)
+      continue;
     //2.判断是否是终点
-    //????
+    if (currentPtr->index == goalIdx) {
+      terminatePtr = currentPtr;
+      ros::Time time_2 = ros::Time::now();
+      if ((time_2 - time_1).toSec() > 0.1)
+        ROS_WARN("Time consume in Astar path finding is %f",
+                 (time_2 - time_1).toSec());
+      return true;
+    }
+    // 当前节点加入 close 集合
+    currentPtr->id = -1;
     //3.拓展当前节点
-    //????
+    AstarGetSucc(currentPtr, neighborPtrSets, edgeCostSets);
     for(unsigned int i=0;i<neighborPtrSets.size();i++)
     {
       
@@ -266,12 +283,25 @@ bool Astarpath::AstarSearch(Vector3d start_pt, Vector3d end_pt) {
       if(neighborPtr->id==0)
       {
         //4.填写信息，完成更新
-        //???
+        neighborPtr->g_score = tentative_g_score;
+        neighborPtr->f_score = neighborPtr->g_score + getHeu(neighborPtr, endPtr);
+        neighborPtr->Father  = currentPtr;
+        neighborPtr->id      = 1;
+        neighborPtr->coord   = gridIndex2coord(neighborPtr->index);
+        Openset.insert(make_pair(neighborPtr->f_score, neighborPtr));
         continue;
       }
       else if(neighborPtr->id==1)
       {
-        //???
+      // 已在 open 集合中，检查是否找到更优的 g_score
+        if (tentative_g_score < neighborPtr->g_score)
+        {
+          neighborPtr->g_score = tentative_g_score;
+          neighborPtr->f_score = neighborPtr->g_score + getHeu(neighborPtr, endPtr);
+          neighborPtr->Father  = currentPtr;
+          // multimap 中旧键值不用特地删，后续弹出时会根据 id/score 再处理
+          Openset.insert(make_pair(neighborPtr->f_score, neighborPtr));
+        }
       continue;
       }
     }
@@ -300,7 +330,14 @@ terminatePtr=terminatePtr->Father;
    *
    * **/
 
-  // ???
+  terminatePtr->coord = gridIndex2coord(terminatePtr->index);
+  front_path.push_back(terminatePtr); 
+
+  // front_path 现在是 [goal, ..., start]，需要倒序输出为从起点到终点
+  for (auto it = front_path.rbegin(); it != front_path.rend(); ++it)
+  {
+    path.push_back((*it)->coord);
+  }
 
   return path;
 }
