@@ -5,6 +5,7 @@
 - **2025.12.02**：对 `calculate_results.py` 进行了一些修改，并更新了部分文档中的路径错误和修正了模糊的表述。
 - **2025.12.02**：调整了 `calculate_results.py` 的碰撞权重参数，并修复了 `trajectory_generator_node.cpp` 中 `issafe` 函数无法正确保存数据的 bug。
 - **2025.12.18**：删除了 `code/README.md` 的 `3.1 步骤 4: 测试移动`。
+- **2025.12.22**：更新了 `code/README.md` 里面的一些文件路径，修复了使用膨胀地图作为碰撞检测的问题，修复了 `issafe` 文件的缓存问题。
 
 
 ## 统一评分细则
